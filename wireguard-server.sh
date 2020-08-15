@@ -24,11 +24,6 @@ function virt-check() {
     echo "LXC virtualization is not supported (yet)."
     exit
   fi
-  # Deny Docker
-  if [ -f /.dockerenv ]; then
-    echo "Docker is not supported (yet)."
-    exit
-  fi
 }
 
 # Virtualization Check
@@ -58,28 +53,50 @@ function check-system-requirements() {
   fi
   # System requirements (bc)
   if ! [ -x "$(command -v bc)" ]; then
-    echo "Error: bc  is not installed, please install bc." >&2
+    echo "Error: bc is not installed, please install bc." >&2
     exit
   fi
   # System requirements (uname)
   if ! [ -x "$(command -v uname)" ]; then
-    echo "Error: uname  is not installed, please install uname." >&2
+    echo "Error: uname is not installed, please install uname." >&2
     exit
   fi
   # System requirements (jq)
   if ! [ -x "$(command -v jq)" ]; then
-    echo "Error: jq  is not installed, please install jq." >&2
+    echo "Error: jq is not installed, please install jq." >&2
     exit
   fi
   # System requirements (sed)
   if ! [ -x "$(command -v sed)" ]; then
-    echo "Error: sed  is not installed, please install sed." >&2
+    echo "Error: sed is not installed, please install sed." >&2
+    exit
+  fi
+  # System requirements (chattr)
+  if ! [ -x "$(command -v chattr)" ]; then
+    echo "Error: chattr is not installed, please install chattr." >&2
     exit
   fi
 }
 
 # Run the function and check for requirements
 check-system-requirements
+
+# Check for docker stuff
+function docker-check() {
+if [ -f /.dockerenv ]; then
+  DOCKER_KERNEL_VERSION_LIMIT=5.6
+  DOCKER_KERNEL_CURRENT_VERSION=$(uname -r | cut -c1-3)
+  if (($(echo "$KERNEL_CURRENT_VERSION >= $KERNEL_VERSION_LIMIT" | bc -l))); then
+    echo "Correct: Kernel version, $KERNEL_CURRENT_VERSION" >/dev/null 2>&1
+  else
+    echo "Error: Kernel version $DOCKER_KERNEL_CURRENT_VERSION please update to $DOCKER_KERNEL_VERSION_LIMIT" >&2
+    exit
+  fi
+fi
+}
+
+# Docker Check
+docker-check
 
 # Lets check the kernel version
 function kernel-check() {
@@ -292,13 +309,13 @@ if [ ! -f "$WG_CONFIG" ]; then
     # Apply port response
     case $SERVER_HOST_V4_SETTINGS in
     1)
-      SERVER_HOST_V4="$(curl -4 -s 'https://api.ipengine.dev' | jq -r '.ip')"
+      SERVER_HOST_V4="$(curl -4 -s 'https://api.ipengine.dev' | jq -r '.network.ip')"
       ;;
     2)
       SERVER_HOST_V4=$(ip addr | grep 'inet' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | head -1)
       ;;
     3)
-      read -rp "Custom IPV4: " -e -i "$(curl -4 -s 'https://api.ipengine.dev' | jq -r '.ip')" SERVER_HOST_V4
+      read -rp "Custom IPV4: " -e -i "$(curl -4 -s 'https://api.ipengine.dev' | jq -r '.network.ip')" SERVER_HOST_V4
       ;;
     esac
   }
@@ -318,13 +335,13 @@ if [ ! -f "$WG_CONFIG" ]; then
     # Apply port response
     case $SERVER_HOST_V6_SETTINGS in
     1)
-      SERVER_HOST_V6="$(curl -6 -s 'https://api.ipengine.dev' | jq -r '.ip')"
+      SERVER_HOST_V6="$(curl -6 -s 'https://api.ipengine.dev' | jq -r '.network.ip')"
       ;;
     2)
       SERVER_HOST_V6=$(ip r get to 2001:4860:4860::8888 | perl -ne '/src ([\w:]+)/ && print "$1\n"')
       ;;
     3)
-      read -rp "Custom IPV6: " -e -i "$(curl -6 -s 'https://api.ipengine.dev' | jq -r '.ip')" SERVER_HOST_V6
+      read -rp "Custom IPV6: " -e -i "$(curl -6 -s 'https://api.ipengine.dev' | jq -r '.network.ip')" SERVER_HOST_V6
       ;;
     esac
   }
@@ -369,8 +386,8 @@ if [ ! -f "$WG_CONFIG" ]; then
       SERVER_PORT="51820"
       ;;
     2)
-      until [[ "$SERVER_PORT" =~ ^[0-9]+$ ]] && [ "$SERVER_PORT" -ge 1 ] && [ "$SERVER_PORT" -le 65535 ]; do
-        read -rp "Custom port [1-65535]: " -e -i 51820 SERVER_PORT
+      until [[ "$SERVER_PORT" =~ ^[0-9]+$ ]] && [ "$SERVER_PORT" -ge 1024 ] && [ "$SERVER_PORT" -le 65535 ]; do
+        read -rp "Custom port [1024-65535]: " -e -i 51820 SERVER_PORT
       done
       ;;
     3)
@@ -398,7 +415,7 @@ if [ ! -f "$WG_CONFIG" ]; then
       NAT_CHOICE="25"
       ;;
     2)
-      until [[ "$NAT_CHOICE" =~ ^[0-9]+$ ]] && [ "$NAT_CHOICE" -ge 1 ] && [ "$NAT_CHOICE" -le 25 ]; do
+      until [[ "$NAT_CHOICE" =~ ^[0-9]+$ ]] && [ "$NAT_CHOICE" -ge 0 ] && [ "$NAT_CHOICE" -le 25 ]; do
         read -rp "Custom NAT [0-25]: " -e -i 25 NAT_CHOICE
       done
       ;;
@@ -428,8 +445,8 @@ if [ ! -f "$WG_CONFIG" ]; then
       MTU_CHOICE="1420"
       ;;
     3)
-      until [[ "$MTU_CHOICE" =~ ^[0-9]+$ ]] && [ "$MTU_CHOICE" -ge 1 ] && [ "$MTU_CHOICE" -le 1500 ]; do
-        read -rp "Custom MTU [1-1500]: " -e -i 1280 MTU_CHOICE
+      until [[ "$MTU_CHOICE" =~ ^[0-9]+$ ]] && [ "$MTU_CHOICE" -ge 0 ] && [ "$MTU_CHOICE" -le 1500 ]; do
+        read -rp "Custom MTU [0-1500]: " -e -i 1280 MTU_CHOICE
       done
       ;;
     esac
@@ -455,7 +472,7 @@ if [ ! -f "$WG_CONFIG" ]; then
       SERVER_HOST="[$SERVER_HOST_V6]"
       ;;
     3)
-      read -rp "Custom Domain: " -e -i "$(curl -4 -s 'https://api.ipengine.dev' | jq -r '.hostname')" SERVER_HOST
+      read -rp "Custom Domain: " -e -i "$(curl -4 -s 'https://api.ipengine.dev' | jq -r '.network.hostname')" SERVER_HOST
       ;;
     esac
   }
@@ -477,20 +494,20 @@ if [ ! -f "$WG_CONFIG" ]; then
       DISABLE_HOST="$(
         echo "net.ipv4.ip_forward=1" >>/etc/sysctl.d/wireguard.conf
         echo "net.ipv6.conf.all.forwarding=1" >>/etc/sysctl.d/wireguard.conf
-        sysctl --system
+        sysctl -p /etc/sysctl.d/wireguard.conf
       )"
       ;;
     2)
       DISABLE_HOST="$(
         echo "net.ipv6.conf.all.forwarding=1" >>/etc/sysctl.d/wireguard.conf
-        sysctl --system
+        sysctl -p /etc/sysctl.d/wireguard.conf
       )"
       ;;
     3)
       # shellcheck disable=SC2034
       DISABLE_HOST="$(
         echo "net.ipv4.ip_forward=1" >>/etc/sysctl.d/wireguard.conf
-        sysctl --system
+        sysctl -p /etc/sysctl.d/wireguard.conf
       )"
       ;;
     esac
@@ -532,45 +549,45 @@ if [ ! -f "$WG_CONFIG" ]; then
     fi
     if [ "$INSTALL_UNBOUND" == "n" ]; then
       echo "Which DNS do you want to use with the VPN?"
-      echo "  1) AdGuard (Recommended)"
-      echo "  2) Google"
-      echo "  3) OpenDNS"
-      echo "  4) Cloudflare"
-      echo "  5) Verisign"
-      echo "  6) Quad9"
-      echo "  7) FDN"
-      echo "  8) DNS.WATCH"
+      echo "  1) NextDNS (Recommended)"
+      echo "  2) AdGuard"
+      echo "  3) Google"
+      echo "  4) OpenDNS"
+      echo "  5) Cloudflare"
+      echo "  6) Verisign"
+      echo "  7) Quad9"
+      echo "  8) FDN"
       echo "  9) Custom (Advanced)"
       until [[ "$CLIENT_DNS_SETTINGS" =~ ^[1-9]$ ]]; do
         read -rp "DNS [1-9]: " -e -i 1 CLIENT_DNS_SETTINGS
       done
       case $CLIENT_DNS_SETTINGS in
       1)
-        CLIENT_DNS="176.103.130.130,176.103.130.131,2a00:5a60::ad1:0ff,2a00:5a60::ad2:0ff"
+        CLIENT_DNS="45.90.28.167,45.90.30.167,2a07:a8c0::12:cf53,2a07:a8c1::12:cf53"
         ;;
       2)
-        CLIENT_DNS="8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
+        CLIENT_DNS="176.103.130.130,176.103.130.131,2a00:5a60::ad1:0ff,2a00:5a60::ad2:0ff"
         ;;
       3)
-        CLIENT_DNS="208.67.222.222,208.67.220.220,2620:119:35::35,2620:119:53::53"
+        CLIENT_DNS="8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
         ;;
       4)
-        CLIENT_DNS="1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001"
+        CLIENT_DNS="208.67.222.222,208.67.220.220,2620:119:35::35,2620:119:53::53"
         ;;
       5)
-        CLIENT_DNS="64.6.64.6,64.6.65.6,2620:74:1b::1:1,2620:74:1c::2:2"
+        CLIENT_DNS="1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001"
         ;;
       6)
-        CLIENT_DNS="9.9.9.9,149.112.112.112,2620:fe::fe,2620:fe::9"
+        CLIENT_DNS="64.6.64.6,64.6.65.6,2620:74:1b::1:1,2620:74:1c::2:2"
         ;;
       7)
-        CLIENT_DNS="80.67.169.40,80.67.169.12,2001:910:800::40,2001:910:800::12"
+        CLIENT_DNS="9.9.9.9,149.112.112.112,2620:fe::fe,2620:fe::9"
         ;;
       8)
-        CLIENT_DNS="84.200.69.80,84.200.70.40,2001:1608:10:25::1c04:b12f,2001:1608:10:25::9249:d69b"
+        CLIENT_DNS="80.67.169.40,80.67.169.12,2001:910:800::40,2001:910:800::12"
         ;;
       9)
-        read -rp "Custom DNS (IPv4 IPv6):" -e -i "176.103.130.130,2a00:5a60::ad1:0ff" CLIENT_DNS
+        read -rp "Custom DNS (IPv4 IPv6):" -e -i "45.90.28.167,45.90.30.167,2a07:a8c0::12:cf53,2a07:a8c1::12:cf53" CLIENT_DNS
         ;;
       esac
     fi
@@ -628,7 +645,7 @@ if [ ! -f "$WG_CONFIG" ]; then
     if [ "$DISTRO" == "arch" ]; then
       pacman -Syu
       pacman -Syu --noconfirm haveged qrencode iptables
-      pacman -Syu --noconfirm wireguard-tools wireguard-arch
+      pacman -Syu --noconfirm wireguard-tools
     fi
     if [ "$DISTRO" = "fedora" ] && [ "$DISTRO_VERSION" == "32" ]; then
       dnf update -y
@@ -640,7 +657,8 @@ if [ ! -f "$WG_CONFIG" ]; then
       dnf copr enable jdoss/wireguard -y
       dnf install qrencode wireguard-dkms wireguard-tools haveged -y
     fi
-    if [ "$DISTRO" == "centos" ] && [ "$DISTRO_VERSION" == "8" ]; then
+    # shellcheck disable=SC2235
+    if [ "$DISTRO" == "centos" ] && ([ "$DISTRO_VERSION" == "8" ] || [ "$DISTRO_VERSION" == "8.1" ]); then
       yum update -y
       yum install epel-release -y
       yum update -y
@@ -756,9 +774,11 @@ if [ ! -f "$WG_CONFIG" ]; then
       fi
       # Remove Unbound Config
       rm -f /etc/unbound/unbound.conf
+      # Cpu
+      NPROC=$(nproc)
       # Set Config for unbound
       echo "server:
-    num-threads: 4
+    num-threads: $NPROC
     verbosity: 1
     root-hints: /etc/unbound/root.hints
     # auto-trust-anchor-file: /var/lib/unbound/root.key
@@ -790,20 +810,20 @@ if [ ! -f "$WG_CONFIG" ]; then
       CLIENT_DNS="$GATEWAY_ADDRESS_V4,$GATEWAY_ADDRESS_V6"
       # Allow the modification of the file
       chattr -i /etc/resolv.conf
-      # Disable previous DNS servers
-      sed -i "s|nameserver|# nameserver|" /etc/resolv.conf
-      sed -i "s|search|# search|" /etc/resolv.conf
+      mv /etc/resolv.conf /etc/resolv.conf.old
       # Set localhost as the DNS resolver
       echo "nameserver 127.0.0.1" >>/etc/resolv.conf
-      # Diable the modification of the file
+      echo "nameserver ::1" >>/etc/resolv.conf
+      # Stop the modification of the file
       chattr +i /etc/resolv.conf
-    fi
+    # restart unbound
     if pgrep systemd-journal; then
       systemctl enable unbound
       systemctl restart unbound
     else
       service unbound enable
       service unbound restart
+    fi
     fi
   }
 
@@ -853,10 +873,7 @@ Endpoint = $SERVER_HOST:$SERVER_PORT
 PersistentKeepalive = $NAT_CHOICE
 PresharedKey = $PRESHARED_KEY
 PublicKey = $SERVER_PUBKEY" >>/etc/wireguard/clients/"$CLIENT_NAME"-$WIREGUARD_PUB_NIC.conf
-    # Generate QR Code
-    qrencode -t ansiutf8 -l L </etc/wireguard/clients/"$CLIENT_NAME"-$WIREGUARD_PUB_NIC.conf
-    # Echo the file
-    echo "Client Config --> /etc/wireguard/clients/$CLIENT_NAME-$WIREGUARD_PUB_NIC.conf"
+    # Service Restart
     if pgrep systemd-journal; then
       systemctl enable wg-quick@$WIREGUARD_PUB_NIC
       systemctl restart wg-quick@$WIREGUARD_PUB_NIC
@@ -864,6 +881,10 @@ PublicKey = $SERVER_PUBKEY" >>/etc/wireguard/clients/"$CLIENT_NAME"-$WIREGUARD_P
       service wg-quick@$WIREGUARD_PUB_NIC enable
       service wg-quick@$WIREGUARD_PUB_NIC restart
     fi
+    # Generate QR Code
+    qrencode -t ansiutf8 -l L </etc/wireguard/clients/"$CLIENT_NAME"-$WIREGUARD_PUB_NIC.conf
+    # Echo the file
+    echo "Client Config --> /etc/wireguard/clients/$CLIENT_NAME-$WIREGUARD_PUB_NIC.conf"
   }
 
   # Setting Up Wireguard Config
@@ -995,8 +1016,7 @@ PublicKey = $SERVER_PUBKEY" >>/etc/wireguard/clients/"$NEW_CLIENT_NAME"-$WIREGUA
         modprobe wireguard
         systemctl restart wg-quick@$WIREGUARD_PUB_NIC
       else
-        dpkg-reconfigure wireguard-dkms
-        modprobe wireguard
+        yum reinstall wireguard-dkms -y
         service wg-quick@$WIREGUARD_PUB_NIC restart
       fi
       ;;
@@ -1029,6 +1049,13 @@ PublicKey = $SERVER_PUBKEY" >>/etc/wireguard/clients/"$NEW_CLIENT_NAME"-$WIREGUA
           rm -f /etc/apt/preferences.d/limit-unstable
         elif [ "$DISTRO" == "ubuntu" ]; then
           apt-get remove --purge wireguard qrencode haveged unbound unbound-host -y
+          if pgrep systemd-journal; then
+            systemctl enable systemd-resolved
+            systemctl restart systemd-resolved
+          else
+            service systemd-resolved enable
+            service systemd-resolved restart
+          fi
         elif [ "$DISTRO" == "raspbian" ]; then
           apt-key del 04EE7237B7D453EC
           apt-get remove --purge wireguard qrencode haveged unbound unbound-host dirmngr -y
@@ -1057,12 +1084,11 @@ PublicKey = $SERVER_PUBKEY" >>/etc/wireguard/clients/"$NEW_CLIENT_NAME"-$WIREGUA
         rm -rf /etc/unbound
         # Allow the modification of the file
         chattr -i /etc/resolv.conf
-        # Remove localhost as the resolver
-        sed -i "s|nameserver 127.0.0.1|# nameserver 127.0.0.1|" /etc/resolv.conf
-        # Remove the old resolv.conf file
-        sed -i "s|# nameserver|nameserver|" /etc/resolv.conf
-        sed -i "s|# search|search|" /etc/resolv.conf
-        # Diable the modification of the file
+        # remove resolv.conf
+        rm -f /etc/resolv.conf
+        # Moving to resolv.conf
+        mv /etc/resolv.conf.old /etc/resolv.conf
+        # Stop the modification of the file
         chattr +i /etc/resolv.conf
       fi
       ;;

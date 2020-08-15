@@ -22,7 +22,7 @@
 
 ---
 ### 🤷 What is VPN ?
-A Virtual Private Network (VPN) allows users to send and receive data through shared or public networks as if their computing devices were directly connected to the private network. Thus, applications running on an end-system (PC, smartphone, etc.) over a VPN may benefit from private network features, protection, and management. Encryption is a standard aspect of a VPN connection but not an intrinsic one.
+A Virtual Private Network (VPN) allows users to send and receive data through shared or public networks as if their computing devices were directly connected to the private network. Thus, applications running on an end-system (PC, smartphone, etc.) over a VPN may benefit from individual network features, protection, and management. Encryption is a standard aspect of a VPN connection but not an intrinsic one.
 
 ### 📶 What is WireGuard❓
 WireGuard is a straightforward yet fast and modern VPN that utilizes state-of-the-art cryptography. It aims to be faster, simpler, leaner, and more useful than IPsec while avoiding the massive headache. It intends to be considerably more performant than OpenVPN. WireGuard is designed as a general-purpose VPN for running on embedded interfaces and super computers alike, fit for many different circumstances. Initially released for the Linux kernel, it is now cross-platform (Windows, macOS, BSD, iOS, Android) and widely deployable. It is currently under a massive development, but it already might be regarded as the most secure, most comfortable to use, and the simplest VPN solution in the industry.
@@ -158,7 +158,7 @@ usage: ./wireguard-server.sh [options]
 | KVM             |:heavy_check_mark:  |
 | LXC             |:x:                 |
 | OpenVZ          |:x:                 |
-| Docker          |:x:                 |
+| Docker          |:heavy_check_mark:  |
 ### 💻 Compatibility with Linux Kernel
 | Kernel          | Supported          |
 | --------------  | ------------------ |
@@ -174,14 +174,14 @@ usage: ./wireguard-server.sh [options]
 ### 🙋 Q&A
 Which hosting provider do you recommend?
 - [Google Cloud](https://gcpsignup.page.link/H9XL): Worldwide locations, starting at $10/month
-- [Vultr](https://www.vultr.com/?ref=8211592): Worldwide locations, IPv6 support, starting at $3.50/month
+- [Vultr](https://www.vultr.com/?ref=8586251-6G): Worldwide locations, IPv6 support, starting at $3.50/month
 - [Digital Ocean](https://m.do.co/c/fb46acb2b3b1): Worldwide locations, IPv6 support, starting at $5/month
 - [Linode](https://www.linode.com/?r=63227744138ea4f9d2dff402cfe5b8ad19e45dae): Worldwide locations, IPv6 support, starting at $5/month
 
 Which WireGuard client do you recommend?
 - Windows: [WireGuard](https://www.wireguard.com/install/).
 - Android: [WireGuard](https://play.google.com/store/apps/details?id=com.wireguard.android).
-- macOS: [WireGuard](https://apps.apple.com/us/app/wireguard/id1451685025).
+- macOS: [WireGuard](https://itunes.apple.com/us/app/wireguard/id1451685025).
 - iOS: [WireGuard](https://itunes.apple.com/us/app/wireguard/id1441195209).
 
 Is there WireGuard documentation?
@@ -252,4 +252,5 @@ Give a ⭐️ and 🍴 if this project helped you!
 ---
 ### 📝 License
 Copyright © 2020 [Prajwal](https://github.com/prajwal-koirala)
+
 This project is [MIT](https://raw.githubusercontent.com/complexorganizations/wireguard-manager/master/.github/LICENSE) licensed.
